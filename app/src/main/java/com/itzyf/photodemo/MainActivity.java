@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         mImageView = (ImageView) findViewById(R.id.image);
 
+        //压缩后的图片保存的文件路径，文件夹需手动创建，不然会保存失败
         File file = new File(Environment.getExternalStorageDirectory().toString() + saveDir);
         if (!file.exists()) {
             boolean result = file.mkdir();
@@ -54,12 +55,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 压缩图片并设置图片到ImageView，最后保存到文件中
+     */
     private void setPic() {
         Bitmap bitmap = ImageResizer.decodeSampledBitmapFromFile(mCurrentPhotoPath, mImageView.getWidth() * 2, mImageView.getHeight() * 2);
         mImageView.setImageBitmap(bitmap);
         saveBitmapToFile(bitmap);
     }
 
+    /**
+     * 从Intent中读取文件路径
+     *
+     * @param data
+     * @return
+     */
     private String readFilePath(Intent data) {
         Uri selectedImage = data.getData();
         String[] filePathColumn = {MediaStore.Images.Media.DATA};
@@ -75,6 +85,11 @@ public class MainActivity extends AppCompatActivity {
         return "";
     }
 
+    /**
+     * 存储bitmap图片到文件中
+     *
+     * @param bitmap
+     */
     private void saveBitmapToFile(Bitmap bitmap) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         // 把压缩后的数据存放到baos中
@@ -92,7 +107,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
+    /**
+     * 拍照
+     */
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
@@ -109,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
                 Uri photoURI = FileProvider.getUriForFile(this,
                         BuildConfig.APPLICATION_ID + ".fileprovider",
                         photoFile);
+//                Uri.fromFile(photoFile);//使用这个uri在Android7上会报错
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
             }
@@ -119,6 +137,12 @@ public class MainActivity extends AppCompatActivity {
 
     String mCurrentPhotoPath;
 
+    /**
+     * 创建一个临时文件用于存储图片
+     *
+     * @return
+     * @throws IOException
+     */
     private File createImageFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.CHINESE).format(new Date());
@@ -135,7 +159,11 @@ public class MainActivity extends AppCompatActivity {
         return image;
     }
 
-
+    /**
+     * 打开相册
+     *
+     * @param view
+     */
     public void openPhoto(View view) {
         Intent picture = new Intent(
                 Intent.ACTION_PICK,
