@@ -1,27 +1,41 @@
 package com.itzyf.photodemo;
 
+import android.Manifest;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.v4.content.FileProvider;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.itzyf.photodemo.util.ImageResizer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Random;
 
+import permissions.dispatcher.NeedsPermission;
+import permissions.dispatcher.OnPermissionDenied;
+import permissions.dispatcher.OnShowRationale;
+import permissions.dispatcher.PermissionRequest;
+import permissions.dispatcher.RuntimePermissions;
+
+@RuntimePermissions
 public class MainActivity extends AppCompatActivity {
     public static final int REQUEST_TAKE_PHOTO = 1;
     public static final int REQUEST_OPEN_PHOTO = 2;
@@ -41,6 +55,12 @@ public class MainActivity extends AppCompatActivity {
             boolean result = file.mkdir();
             if (result) Toast.makeText(this, "初始文件夹成功", Toast.LENGTH_SHORT).show();
         }
+        MainActivityPermissionsDispatcher.requestPermissionWithCheck(this);
+    }
+
+    @NeedsPermission({Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE})
+    public void requestPermission() {
+
     }
 
     @Override
@@ -57,10 +77,9 @@ public class MainActivity extends AppCompatActivity {
      * 压缩图片并设置图片到ImageView，最后保存到文件中
      */
     private void setPic() {
-//        Glide.with(this).load("file://"+mCurrentPhotoPath).into(mImageView);
         Bitmap bitmap = ImageResizer.decodeSampledBitmapFromFile(mCurrentPhotoPath, mImageView.getWidth() * 2, mImageView.getHeight() * 2);
         mImageView.setImageBitmap(bitmap);
-//        saveBitmapToFile(bitmap);
+        saveBitmapToFile(bitmap);
     }
 
     /**
@@ -70,50 +89,47 @@ public class MainActivity extends AppCompatActivity {
      * @return
      */
     private String readFilePath(Intent data) {
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
-            Uri selectedImage = data.getData();
-            String[] filePathColumn = {MediaStore.Images.Media.DATA};
+        Uri selectedImage = data.getData();
+        String[] filePathColumn = {MediaStore.Images.Media.DATA};
 
-            Cursor cursor = getContentResolver().query(selectedImage,
-                    filePathColumn, null, null, null);
-            if (cursor != null && cursor.moveToFirst()) {
-                int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
-                String picturePath = cursor.getString(columnIndex);
-                cursor.close();
-                return picturePath;
-            }
-        } else {
-
+        Cursor cursor = getContentResolver().query(selectedImage,
+                filePathColumn, null, null, null);
+        if (cursor != null && cursor.moveToFirst()) {
+            int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+            String picturePath = cursor.getString(columnIndex);
+            cursor.close();
+            return picturePath;
         }
         return "";
     }
 
-//    /**
-//     * 存储bitmap图片到文件中
-//     *
-//     * @param bitmap
-//     */
-//    private void saveBitmapToFile(Bitmap bitmap) {
-//        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//        // 把压缩后的数据存放到baos中
-//        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, baos);
-//        try {
-//            String timeStamp = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.CHINA).format(new Date()) + (new Random().nextInt(89) + 10);
-//            File file = new File(Environment.getExternalStorageDirectory().toString() + saveDir, timeStamp + ".jpg");
-//            FileOutputStream fos = new FileOutputStream(file);
-//            fos.write(baos.toByteArray());
-//            fos.flush();
-//            fos.close();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
-//        }
-//    }
+    /**
+     * 存储bitmap图片到文件中
+     *
+     * @param bitmap
+     */
+    private void saveBitmapToFile(Bitmap bitmap) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        // 把压缩后的数据存放到baos中
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, baos);
+        try {
+            String timeStamp = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.CHINA).format(new Date()) + (new Random().nextInt(89) + 10);
+            File file = new File(Environment.getExternalStorageDirectory().toString() + saveDir, timeStamp + ".jpg");
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(baos.toByteArray());
+            fos.flush();
+            fos.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
 
     /**
      * 拍照
      */
-    private void dispatchTakePictureIntent() {
+
+    public void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
@@ -146,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
      * @return
      * @throws IOException
      */
-    private File createImageFile() throws IOException {
+    public File createImageFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.CHINESE).format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
@@ -178,7 +194,56 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
     public void openCamera(View view) {
         dispatchTakePictureIntent();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        MainActivityPermissionsDispatcher.onRequestPermissionsResult(this, requestCode, grantResults);
+    }
+
+//    @OnPermissionDenied(Manifest.permission.CAMERA)
+//    void showDeniedForCamera() {
+//        Toast.makeText(this, "申请相机权限失败了", Toast.LENGTH_SHORT).show();
+//    }
+
+    @OnPermissionDenied(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    void showDeniedForCamera() {
+        Toast.makeText(this, "申请存储权限失败了", Toast.LENGTH_SHORT).show();
+    }
+
+    @OnShowRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    void showRationaleForCamera(final PermissionRequest request) {
+        new AlertDialog.Builder(this)
+                .setMessage("我需要这个权限")
+                .setPositiveButton("申请", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        request.proceed();
+                    }
+                })
+                .setNegativeButton("拒绝", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        request.cancel();
+                    }
+                })
+                .show();
+    }
+
+    public void openOtherApp(View view) {
+        if (TextUtils.isEmpty(mCurrentPhotoPath))
+            return;
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        Uri photoURI = FileProvider.getUriForFile(this,
+                BuildConfig.APPLICATION_ID + ".fileprovider",
+                new File(mCurrentPhotoPath));
+        intent.setDataAndType(photoURI, "image/*");
+        startActivity(intent);
+
     }
 }
