@@ -15,14 +15,11 @@ import android.widget.Toast;
 
 import com.itzyf.photodemo.util.ImageResizer;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
     public static final int REQUEST_TAKE_PHOTO = 1;
@@ -59,9 +56,10 @@ public class MainActivity extends AppCompatActivity {
      * 压缩图片并设置图片到ImageView，最后保存到文件中
      */
     private void setPic() {
+//        Glide.with(this).load("file://"+mCurrentPhotoPath).into(mImageView);
         Bitmap bitmap = ImageResizer.decodeSampledBitmapFromFile(mCurrentPhotoPath, mImageView.getWidth() * 2, mImageView.getHeight() * 2);
         mImageView.setImageBitmap(bitmap);
-        saveBitmapToFile(bitmap);
+//        saveBitmapToFile(bitmap);
     }
 
     /**
@@ -85,27 +83,27 @@ public class MainActivity extends AppCompatActivity {
         return "";
     }
 
-    /**
-     * 存储bitmap图片到文件中
-     *
-     * @param bitmap
-     */
-    private void saveBitmapToFile(Bitmap bitmap) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        // 把压缩后的数据存放到baos中
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, baos);
-        try {
-            String timeStamp = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.CHINA).format(new Date()) + (new Random().nextInt(89) + 10);
-            File file = new File(Environment.getExternalStorageDirectory().toString() + saveDir, timeStamp + ".jpg");
-            FileOutputStream fos = new FileOutputStream(file);
-            fos.write(baos.toByteArray());
-            fos.flush();
-            fos.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    }
+//    /**
+//     * 存储bitmap图片到文件中
+//     *
+//     * @param bitmap
+//     */
+//    private void saveBitmapToFile(Bitmap bitmap) {
+//        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//        // 把压缩后的数据存放到baos中
+//        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, baos);
+//        try {
+//            String timeStamp = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.CHINA).format(new Date()) + (new Random().nextInt(89) + 10);
+//            File file = new File(Environment.getExternalStorageDirectory().toString() + saveDir, timeStamp + ".jpg");
+//            FileOutputStream fos = new FileOutputStream(file);
+//            fos.write(baos.toByteArray());
+//            fos.flush();
+//            fos.close();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+//        }
+//    }
 
     /**
      * 拍照
