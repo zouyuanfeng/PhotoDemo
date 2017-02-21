@@ -1,7 +1,6 @@
 package com.itzyf.photodemo;
 
 import android.Manifest;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -11,7 +10,6 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.content.FileProvider;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.View;
@@ -30,9 +28,6 @@ import java.util.Locale;
 import java.util.Random;
 
 import permissions.dispatcher.NeedsPermission;
-import permissions.dispatcher.OnPermissionDenied;
-import permissions.dispatcher.OnShowRationale;
-import permissions.dispatcher.PermissionRequest;
 import permissions.dispatcher.RuntimePermissions;
 
 @RuntimePermissions
@@ -40,7 +35,12 @@ public class MainActivity extends AppCompatActivity {
     public static final int REQUEST_TAKE_PHOTO = 1;
     public static final int REQUEST_OPEN_PHOTO = 2;
     private ImageView mImageView;
+    //当前拍照或者选择的文件路径
+    private String mCurrentPhotoPath;
 
+    /**
+     * 压缩后保存的图片文件
+     */
     private String saveDir = "/itzyf/";
 
     @Override
@@ -55,12 +55,6 @@ public class MainActivity extends AppCompatActivity {
             boolean result = file.mkdir();
             if (result) Toast.makeText(this, "初始文件夹成功", Toast.LENGTH_SHORT).show();
         }
-        MainActivityPermissionsDispatcher.requestPermissionWithCheck(this);
-    }
-
-    @NeedsPermission({Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE})
-    public void requestPermission() {
-
     }
 
     @Override
@@ -128,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 拍照
      */
-
+    @NeedsPermission({Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE})
     public void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
@@ -154,7 +148,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    String mCurrentPhotoPath;
 
     /**
      * 创建一个临时文件用于存储图片
@@ -178,12 +171,8 @@ public class MainActivity extends AppCompatActivity {
         return image;
     }
 
-    /**
-     * 打开相册
-     *
-     * @param view
-     */
-    public void openPhoto(View view) {
+    @NeedsPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    public void openPhoto() {
         Intent picture = new Intent(
                 Intent.ACTION_PICK,
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
@@ -194,9 +183,19 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 打开相册
+     *
+     * @param view
+     */
+
+    public void openPhoto(View view) {
+        MainActivityPermissionsDispatcher.openPhotoWithCheck(this);
+    }
+
 
     public void openCamera(View view) {
-        dispatchTakePictureIntent();
+        MainActivityPermissionsDispatcher.dispatchTakePictureIntentWithCheck(this);
     }
 
     @Override
@@ -205,35 +204,11 @@ public class MainActivity extends AppCompatActivity {
         MainActivityPermissionsDispatcher.onRequestPermissionsResult(this, requestCode, grantResults);
     }
 
-//    @OnPermissionDenied(Manifest.permission.CAMERA)
-//    void showDeniedForCamera() {
-//        Toast.makeText(this, "申请相机权限失败了", Toast.LENGTH_SHORT).show();
-//    }
-
-    @OnPermissionDenied(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-    void showDeniedForCamera() {
-        Toast.makeText(this, "申请存储权限失败了", Toast.LENGTH_SHORT).show();
-    }
-
-    @OnShowRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-    void showRationaleForCamera(final PermissionRequest request) {
-        new AlertDialog.Builder(this)
-                .setMessage("我需要这个权限")
-                .setPositiveButton("申请", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        request.proceed();
-                    }
-                })
-                .setNegativeButton("拒绝", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        request.cancel();
-                    }
-                })
-                .show();
-    }
-
+    /**
+     * 使用其他应用打开选取的图片
+     *
+     * @param view
+     */
     public void openOtherApp(View view) {
         if (TextUtils.isEmpty(mCurrentPhotoPath))
             return;
@@ -244,6 +219,5 @@ public class MainActivity extends AppCompatActivity {
                 new File(mCurrentPhotoPath));
         intent.setDataAndType(photoURI, "image/*");
         startActivity(intent);
-
     }
 }
