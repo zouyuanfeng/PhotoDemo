@@ -1,5 +1,9 @@
 # 描述
-拍照与读取相册并压缩图片
+* 拍照
+* 相册
+* 图片压缩
+* 权限申请
+* 图片使用第三方应用打开（兼容到Android N）
 
 #参考
 主要参考[Android开发者官网](https://developer.android.google.cn/training/camera/photobasics.html)
